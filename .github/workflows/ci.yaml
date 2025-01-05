@@ -1,0 +1,146 @@
+name: ci
+on: [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: "1"
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            cargo-
+
+      - name: Setup | Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          default: true
+          components: clippy, rustfmt
+
+      - name: Build | Clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-targets -- -D warnings
+
+      - name: Build | Rustfmt
+        run: cargo fmt -- --check
+
+  wither:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mongo_version: ["mongo:5.0", "mongo:4.4", "mongo:4.2", "mongo:4.0", "mongo:3.6"]
+        features: ["--features=tokio-runtime", "--no-default-features --features=async-std-runtime"]
+    services:
+      mongo:
+        image: ${{ matrix.mongo_version }}
+        ports:
+          - 27017:27017
+    env:
+      HOST: localhost
+      PORT: 27017
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            cargo-
+
+      - name: Setup | Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          default: true
+
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: ${{ matrix.features }} --tests --lib --manifest-path wither/Cargo.toml -- --test-threads=1
+
+  wither_derive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            cargo-
+
+      - name: Setup | Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          default: true
+
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -p wither_derive --tests --lib
+
+  doc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-nightly-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            cargo-nightly-
+
+      - name: Setup | Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          default: true
+
+      - name: Nightly Tests Wither
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --features docinclude --doc --manifest-path wither/Cargo.toml
+
+      - name: Nightly Tests Wither Derive
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --doc --manifest-path wither_derive/Cargo.toml

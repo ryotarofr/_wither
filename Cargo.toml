@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "wither",
+    "wither_derive",
+]
