@@ -3,7 +3,6 @@ use darling::FromMeta;
 use inflector::Inflector;
 use proc_macro_error::abort;
 use quote::quote;
-use syn::meta::ParseNestedMeta;
 use syn::parse::Parser;
 use syn::DeriveInput;
 /// The name of the helper attribute used by this derive macro.
