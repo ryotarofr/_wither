@@ -17,7 +17,7 @@ An ODM for MongoDB built on the official <a href="https://github.com/mongodb/mon
 </div>
 </br>
 
-The primary goal of this project is to provide a simple, sane & predictable interface into MongoDB based on data models. If at any point this system might get in your way, you have direct access to the underlying driver. This project is tested against MongoDB `8.0`.
+The primary goal of this project is to provide a simple, sane & predictable interface into MongoDB based on data models. If at any point this system might get in your way, you have direct access to the underlying driver. This project is tested against MongoDB `5.0`.
 
 **GREAT NEWS!** Wither is now based on the official [MongoDB Rust driver](https://github.com/mongodb/mongo-rust-driver). Thanks to advancements in the driver, Wither is now fully asynchronous. Simply mirroring the features of the underlying MongoDB driver, Wither supports the following runtimes:
 
