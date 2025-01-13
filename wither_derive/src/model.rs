@@ -3,8 +3,9 @@ use darling::FromMeta;
 use inflector::Inflector;
 use proc_macro_error::abort;
 use quote::quote;
+use syn::meta::ParseNestedMeta;
+use syn::parse::Parser;
 use syn::DeriveInput;
-
 /// The name of the helper attribute used by this derive macro.
 const MODEL_HELPER_ATTR: &str = "model";
 /// An error message indicating the existence of a duplicate attr.
@@ -322,8 +323,29 @@ impl<'a> MetaModel<'a> {
             })
             // Extract the inner meta list of the target attrs.
             .map(|meta| match meta {
-                syn::Meta::List(inner) => inner.nested,
-                _ => abort!(meta, format!("wither expected this attribute to be formatted as a meta list, eg: `#[{}(...)]`", container_name)),
+                // If it's a `#[something(...)]`, then we'll parse its token stream.
+                NestedMeta::Meta(syn::Meta::List(ref meta_list)) => {
+                    // Parse the tokens inside the parentheses `(...)` as a series of NestedMeta
+                    let parsed = syn::punctuated::Punctuated::<darling::ast::NestedMeta, syn::Token![,]>::parse_terminated
+                        .parse2(meta_list.tokens.clone())
+                        .unwrap_or_else(|err| abort!(
+                            meta_list.tokens,
+                            "could not parse nested tokens";
+                            hint = err
+                        ));
+    
+                    // Convert the Punctuated into a Vec<NestedMeta>
+                    parsed.into_iter().collect::<Vec<_>>()
+                }
+    
+                // Anything else is an error in your scenario.
+                _ => abort!(
+                    meta,
+                    format!(
+                        "expected this attribute to be formatted as a meta list, e.g.: `#[{}(...)]`",
+                        container_name
+                    )
+                ),
             })
             // Accumulate all attrs so that we can deal with them as a single iterable.
             .fold(vec![], |mut acc, nested| {
